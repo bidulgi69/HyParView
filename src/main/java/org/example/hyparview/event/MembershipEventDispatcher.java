@@ -9,13 +9,13 @@ import java.util.function.Consumer;
 @Component
 public class MembershipEventDispatcher {
 
-    private final List<Consumer<MemberViewChangeEvent>> viewChangeConsumers = new LinkedList<>();
+    private final List<Consumer<Event>> eventConsumers = new LinkedList<>();
 
-    public void registerConsumer(Consumer<MemberViewChangeEvent> consumer) {
-        viewChangeConsumers.add(consumer);
+    public void registerConsumer(Consumer<Event> consumer) {
+        eventConsumers.add(consumer);
     }
 
-    public void dispatch(MemberViewChangeEvent event) {
-        viewChangeConsumers.forEach(consumer -> consumer.accept(event));
+    public void dispatch(Event event) {
+        eventConsumers.forEach(consumer -> consumer.accept(event));
     }
 }

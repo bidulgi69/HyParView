@@ -1,6 +1,8 @@
 package org.example.hyparview.event.listener;
 
 import org.example.hyparview.Snowflake;
+import org.example.hyparview.event.Event;
+import org.example.hyparview.event.MemberViewChangeEvent;
 import org.example.hyparview.event.MembershipEventDispatcher;
 import org.example.hyparview.protocol.Node;
 import org.example.hyparview.protocol.topology.NeighborSuggest;
@@ -19,16 +21,25 @@ public class MemberViewChangedListener {
                                      HyparviewClient client
     ) {
         dispatcher.registerConsumer(event -> {
-            Node node = event.member().toNode();
+            if (!support(event)) {
+                return;
+            }
+
+            MemberViewChangeEvent evt = (MemberViewChangeEvent) event;
+            Node node = evt.member().toNode();
             TopologyMessage neighborSuggest = new NeighborSuggest(
                 snowflake.nextId(),
                 TopologyMessageType.NEIGHBOR,
                 0,
                 node,
-                event.activeView()
+                evt.activeView()
             );
 
             client.doPost(node, neighborSuggest).subscribe();
         });
+    }
+
+    private boolean support(Event event) {
+        return event instanceof MemberViewChangeEvent;
     }
 }
