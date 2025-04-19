@@ -1,0 +1,71 @@
+services:
+  hyparview-node1:
+    build: .
+    container_name: hyparview-node1
+    ports:
+      - "8080:8080"
+    environment:
+      HYPARVIEW_NODE_ID: hyparview-node1
+      HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+    networks:
+      - hyparview-cluster
+
+  hyparview-node2:
+    build: .
+    container_name: hyparview-node2
+    ports:
+      - "8081:8080"
+    environment:
+      HYPARVIEW_NODE_ID: hyparview-node2
+      HYPARVIEW_SEED: hyparview-node1=hyparview-node1:8080
+      HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+    networks:
+      - hyparview-cluster
+    depends_on:
+      - hyparview-node1
+
+  hyparview-node3:
+    build: .
+    container_name: hyparview-node3
+    ports:
+      - "8082:8080"
+    environment:
+      HYPARVIEW_NODE_ID: hyparview-node3
+      HYPARVIEW_SEED: hyparview-node2=hyparview-node2:8080
+      HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+    networks:
+      - hyparview-cluster
+    depends_on:
+      - hyparview-node2
+
+  hyparview-node4:
+    build: .
+    container_name: hyparview-node4
+    ports:
+      - "8083:8080"
+    environment:
+      HYPARVIEW_NODE_ID: hyparview-node4
+      HYPARVIEW_SEED: hyparview-node3=hyparview-node3:8080
+      HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+    networks:
+      - hyparview-cluster
+    depends_on:
+      - hyparview-node3
+
+  hyparview-node5:
+    build: .
+    container_name: hyparview-node5
+    ports:
+      - "8084:8080"
+    environment:
+      HYPARVIEW_NODE_ID: hyparview-node5
+      HYPARVIEW_SEED: hyparview-node4=hyparview-node4:8080
+      HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+    networks:
+      - hyparview-cluster
+    depends_on:
+      - hyparview-node4
+
+networks:
+  hyparview-cluster:
+    driver: bridge

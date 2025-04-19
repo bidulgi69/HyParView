@@ -1,0 +1,26 @@
+hyparview:
+  expected-network-scale: 5
+  protocol:
+    default-ttl: 1 # log(5) ? 1.6
+    topology:
+      shuffle:
+        node-count: 6
+        active-node-count: 2
+        interval-ms: 10000
+    gossip:
+      heartbeat:
+        interval-ms: 1000
+  cache:
+    max-entry-size: 100
+    retention-ms: 600000 # 10m
+  snowflake:
+    custom-epoch: 1744992539000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health,metrics
+  metrics:
+    enable:
+      http.server.requests: true
