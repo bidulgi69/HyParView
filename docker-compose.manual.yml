@@ -20,6 +20,7 @@ services:
       HYPARVIEW_NODE_ID: hyparview-node2
       HYPARVIEW_SEED: hyparview-node1=hyparview-node1:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+      HYPARVIEW_BOOTSTRAP_ENABLE: false
     networks:
       - hyparview-cluster
     depends_on:
@@ -34,6 +35,7 @@ services:
       HYPARVIEW_NODE_ID: hyparview-node3
       HYPARVIEW_SEED: hyparview-node2=hyparview-node2:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+      HYPARVIEW_BOOTSTRAP_ENABLE: false
     networks:
       - hyparview-cluster
     depends_on:
@@ -48,6 +50,7 @@ services:
       HYPARVIEW_NODE_ID: hyparview-node4
       HYPARVIEW_SEED: hyparview-node3=hyparview-node3:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+      HYPARVIEW_BOOTSTRAP_ENABLE: false
     networks:
       - hyparview-cluster
     depends_on:
@@ -62,6 +65,7 @@ services:
       HYPARVIEW_NODE_ID: hyparview-node5
       HYPARVIEW_SEED: hyparview-node4=hyparview-node4:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
+      HYPARVIEW_BOOTSTRAP_ENABLE: false
     networks:
       - hyparview-cluster
     depends_on:
