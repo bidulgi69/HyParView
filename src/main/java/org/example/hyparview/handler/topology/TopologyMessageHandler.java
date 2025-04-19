@@ -99,7 +99,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
                 Collection<Member> sampleMemberSet = sampleSet.stream()
                     .map(Node::toMember)
                     .toList();
-                membershipService.mergeIntoPassiveView(sampleMemberSet);
+                membershipService.mergeIntoActiveView(sampleMemberSet);
 
                 List<Node> replySet = membershipService.getRandomPassiveMembersLimit(properties.getShuffleNodeCount())
                     .stream()
