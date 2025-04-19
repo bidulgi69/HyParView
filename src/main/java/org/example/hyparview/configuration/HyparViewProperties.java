@@ -14,6 +14,8 @@ public class HyparViewProperties {
     private String nodeId;
     @Value("${hyparview.seed:}")
     private String seed;
+    @Value("${hyparview.bootstrap.enable:true}")
+    private boolean enableBootstrap;
     @Value("${hyparview.expected-network-scale:10}")
     private int networkScale;
     @Value("${hyparview.protocol.default-ttl}")
@@ -56,6 +58,10 @@ public class HyparViewProperties {
 
     public String getSeed() {
         return seed;
+    }
+
+    public boolean enableBootStrap() {
+        return enableBootstrap;
     }
 
     public int getNetworkScale() {

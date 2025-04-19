@@ -44,7 +44,7 @@ public class HyparviewBootstrap implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         String seedProperty = properties.getSeed();
-        if (seedProperty != null && !seedProperty.isBlank()) {
+        if (properties.enableBootStrap() && seedProperty != null && !seedProperty.isBlank()) {
             String[] seedNodes = seedProperty.split(",");
             for (String seed : seedNodes) {
                 String[] idAndAddress = seed.split("=");

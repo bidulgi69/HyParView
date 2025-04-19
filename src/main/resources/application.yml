@@ -1,4 +1,6 @@
 hyparview:
+  bootstrap:
+    enable: false
   expected-network-scale: 5
   protocol:
     default-ttl: 1 # log(5) ? 1.6
