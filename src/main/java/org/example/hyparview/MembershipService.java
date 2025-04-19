@@ -1,6 +1,8 @@
 package org.example.hyparview;
 
 import org.example.hyparview.configuration.HyparViewProperties;
+import org.example.hyparview.event.MemberViewChangeEvent;
+import org.example.hyparview.event.MembershipEventDispatcher;
 import org.example.hyparview.protocol.Node;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,7 @@ public class MembershipService {
     private final Node me;
     private final int activeViewSizeLimit;
     private final int passiveViewSizeLimit;
+    private final MembershipEventDispatcher dispatcher;
 
     // size: log(n)+1
     private final Map<String, Member> activeView;
@@ -25,10 +28,13 @@ public class MembershipService {
     private final ReentrantLock lock = new ReentrantLock();
 
     @Autowired
-    public MembershipService(HyparViewProperties properties) {
+    public MembershipService(HyparViewProperties properties,
+                             MembershipEventDispatcher dispatcher
+    ) {
         me = properties.getId();
         activeViewSizeLimit = 1 + (int)Math.log(properties.getNetworkScale());
         passiveViewSizeLimit = 6 * activeViewSizeLimit;
+        this.dispatcher = dispatcher;
 
         activeView = new HashMap<>(activeViewSizeLimit);
         activeMemberLastSeenMinHeap = new PriorityQueue<>(activeViewSizeLimit, Comparator.comparing(Member::getLastSeen));
@@ -76,7 +82,7 @@ public class MembershipService {
                     activeView.remove(eldestActiveMember.getId());
                     activeMemberLastSeenMinHeap.remove(eldestActiveMember);
                     passiveView.put(eldestActiveMember.getId(), eldestActiveMember);
-                    passiveMemberLastSeenMinHeap.add(member);
+                    passiveMemberLastSeenMinHeap.add(eldestActiveMember);
                 }
             }
             activeView.put(member.getId(), member);
@@ -104,8 +110,8 @@ public class MembershipService {
 
     public void disconnect(String nodeId) {
         if (activeView.containsKey(nodeId)) {
-            activeView.remove(nodeId);
-            activeMemberLastSeenMinHeap.remove(activeMemberLastSeenMinHeap.peek());
+            Member activeMember = activeView.remove(nodeId);
+            activeMemberLastSeenMinHeap.remove(activeMember);
             // move passive member to active view
             Member passiveMember = getRandomPassiveMember();
             if (passiveMember != null) {
@@ -129,6 +135,7 @@ public class MembershipService {
                 passiveMemberLastSeenMinHeap.remove(member);
                 activeView.put(member.getId(), member);
                 activeMemberLastSeenMinHeap.add(member);
+                dispatcher.dispatch(new MemberViewChangeEvent(member, true));
             } else {
                 if (!enoughSpaceInPassiveView()) {
                     // 가장 오래전에 갱신된 passive member 를 추방
@@ -140,6 +147,7 @@ public class MembershipService {
                 }
                 passiveView.put(member.getId(), member);
                 passiveMemberLastSeenMinHeap.add(member);
+                dispatcher.dispatch(new MemberViewChangeEvent(member, false));
             }
         }
     }
@@ -157,6 +165,7 @@ public class MembershipService {
             ) {
                 passiveView.put(member.getId(), member);
                 passiveMemberLastSeenMinHeap.add(member);
+                dispatcher.dispatch(new MemberViewChangeEvent(member, false));
             }
         }
     }
