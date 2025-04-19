@@ -11,7 +11,7 @@ hyparview:
       heartbeat:
         interval-ms: 1000
   cache:
-    max-entry-size: 100
+    max-entry-size: 3000
     retention-ms: 600000 # 10m
   snowflake:
     custom-epoch: 1744992539000
