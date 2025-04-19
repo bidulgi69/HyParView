@@ -19,4 +19,9 @@ public class Schedulers {
         heartbeatScheduler.run();
         shuffleScheduler.run();
     }
+
+    public void destroyExplicit() {
+        heartbeatScheduler.destroy();
+        shuffleScheduler.destroy();
+    }
 }
