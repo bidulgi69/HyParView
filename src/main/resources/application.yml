@@ -1,9 +1,9 @@
 hyparview:
   bootstrap:
-    enable: false
+    enable: true
   expected-network-scale: 5
   protocol:
-    default-ttl: 1 # log(5) ? 1.6
+    default-ttl: 2 # log(5) ? 1.6
     topology:
       shuffle:
         node-count: 6
