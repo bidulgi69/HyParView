@@ -46,6 +46,7 @@ public class GossipHandler extends HandlerTemplate<Gossip> {
             case MEMBERSHIP -> {
                 Membership membership = (Membership) gossip;
                 Node node = membership.getNode();
+                _logger.info("Received membership change gossip, type: {} with changed node: {}", membership.getChangeType(), node);
                 switch (membership.getChangeType()) {
                     case JOIN -> membershipService.mergeIntoPassiveView(List.of(node.toMember()));
                     case LEAVE, FAIL -> membershipService.disconnect(node.nodeId());

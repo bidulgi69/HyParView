@@ -59,6 +59,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
         switch (message.getType()) {
             case JOIN -> {
                 JoinRequest joinRequest = (JoinRequest) message;
+                _logger.info("Handle join request from node {}", joinRequest.getNode().nodeId());
                 TopologyMessage forwardJoinRequest = new ForwardJoinRequest(
                     snowflake.nextId(),
                     TopologyMessageType.FWD_JOIN,
@@ -76,6 +77,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
             case FWD_JOIN -> {
                 ForwardJoinRequest forwardJoinRequest = (ForwardJoinRequest) message;
                 Node originNode = forwardJoinRequest.getNode();
+                _logger.info("Handle forward-join request from origin node {}", originNode.nodeId());
                 // activeView 에 자리가 없다면 랜덤한 노드를 passive view 로 이동시킴
                 membershipService.forceJoin(originNode.toMember());
 
@@ -91,11 +93,13 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
             case FWD_JOIN_REPLY -> {
                 ForwardJoinReply forwardJoinReply = (ForwardJoinReply) message;
                 Node acceptor = forwardJoinReply.getAcceptor();
+                _logger.info("Handle forward-join reply from acceptor node {}", acceptor.nodeId());
                 membershipService.forceJoin(acceptor.toMember());
             }
             case SHUFFLE_REQUEST -> {
                 ShuffleRequest shuffleRequest = (ShuffleRequest) message;
                 Collection<Node> sampleSet = shuffleRequest.getSampleSet();
+                _logger.info("Handle shuffle request from sample set {}", sampleSet);
                 Collection<Member> sampleMemberSet = sampleSet.stream()
                     .map(Node::toMember)
                     .toList();
@@ -103,7 +107,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
 
                 List<Node> replySet = membershipService.getRandomPassiveMembersLimit(properties.getShuffleNodeCount())
                     .stream()
-                    .map(member -> new Node(member.getId(), member.getHost(), member.getPort()))
+                    .map(Member::toNode)
                     .toList();
                 TopologyMessage shuffleReply = new ShuffleReply(
                     snowflake.nextId(),
@@ -118,6 +122,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
             case SHUFFLE_REPLY -> {
                 ShuffleReply shuffleReply = (ShuffleReply) message;
                 Collection<Node> replySet = shuffleReply.getReplySet();
+                _logger.info("Handle shuffle reply from reply set {}", replySet);
                 Collection<Member> replyMemberSet = replySet.stream()
                     .map(Node::toMember)
                     .toList();
@@ -126,10 +131,12 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
             case NEIGHBOR -> {
                 NeighborSuggest neighborSuggest = (NeighborSuggest) message;
                 Node node = neighborSuggest.getNode();
-                membershipService.joinIfAvailable(node.toMember());
+                _logger.info("Handle neighbor suggest from node {} to add {} view", node.nodeId(), neighborSuggest.isActiveView() ? "active" : "passive");
+                membershipService.joinIfAvailable(node.toMember(), neighborSuggest.isActiveView());
             }
             case DISCONNECT -> {
                 Disconnect disconnect = (Disconnect) message;
+                _logger.info("Handle disconnect node {}", disconnect.getNodeId());
                 membershipService.disconnect(disconnect.getNodeId());
             }
         }
