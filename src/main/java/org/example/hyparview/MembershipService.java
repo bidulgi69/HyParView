@@ -45,17 +45,15 @@ public class MembershipService {
     public void join(Member member) {
         lock.lock();
         try {
-            if (me.nodeId().equals(member.getId())) {
+            if (me.nodeId().equals(member.getId()) || activeView.containsKey(member.getId())) {
                 return;
             }
 
-            if (!enoughSpaceInActiveView()) {
+            if (!enoughSpaceInActiveView() && !passiveView.containsKey(member.getId())) {
                 if (!enoughSpaceInPassiveView()) {
                     Member eldestPassiveMember = getEldestPassiveMember();
-                    if (eldestPassiveMember != null) {
-                        passiveView.remove(eldestPassiveMember.getId());
-                        passiveMemberLastSeenMinHeap.remove(eldestPassiveMember);
-                    }
+                    passiveView.remove(eldestPassiveMember.getId());
+                    passiveMemberLastSeenMinHeap.remove(eldestPassiveMember);
                 }
                 passiveView.put(member.getId(), member);
                 passiveMemberLastSeenMinHeap.add(member);
@@ -71,19 +69,17 @@ public class MembershipService {
     public void forceJoin(Member member) {
         lock.lock();
         try {
-            if (me.nodeId().equals(member.getId())) {
+            if (me.nodeId().equals(member.getId()) || activeView.containsKey(member.getId())) {
                 return;
             }
 
             if (!enoughSpaceInActiveView()) {
                 // 가장 오래된 active member 를 passive view 로 이동
                 Member eldestActiveMember = getEldestActiveMember();
-                if (eldestActiveMember != null) {
-                    activeView.remove(eldestActiveMember.getId());
-                    activeMemberLastSeenMinHeap.remove(eldestActiveMember);
-                    passiveView.put(eldestActiveMember.getId(), eldestActiveMember);
-                    passiveMemberLastSeenMinHeap.add(eldestActiveMember);
-                }
+                activeView.remove(eldestActiveMember.getId());
+                activeMemberLastSeenMinHeap.remove(eldestActiveMember);
+                passiveView.put(eldestActiveMember.getId(), eldestActiveMember);
+                passiveMemberLastSeenMinHeap.add(eldestActiveMember);
             }
             activeView.put(member.getId(), member);
             activeMemberLastSeenMinHeap.add(member);
@@ -92,16 +88,19 @@ public class MembershipService {
         }
     }
 
-    public void joinIfAvailable(Member member) {
+    public void joinIfAvailable(Member member, boolean active) {
         lock.lock();
         try {
             if (me.nodeId().equals(member.getId())) {
                 return;
             }
 
-            if (enoughSpaceInActiveView()) {
+            if (active && enoughSpaceInActiveView() && !activeView.containsKey(member.getId())) {
                 activeView.put(member.getId(), member);
                 activeMemberLastSeenMinHeap.add(member);
+            } else if (!active && enoughSpaceInPassiveView() && !passiveView.containsKey(member.getId())) {
+                passiveView.put(member.getId(), member);
+                passiveMemberLastSeenMinHeap.add(member);
             }
         } finally {
             lock.unlock();
@@ -129,43 +128,59 @@ public class MembershipService {
 
     public void mergeIntoActiveView(Collection<Member> members) {
         for (Member member : members) {
-            if (enoughSpaceInActiveView()) {
-                // passive view 에 이미 존재했다면 active view 로 이동시킨다.
-                passiveView.remove(member.getId());
-                passiveMemberLastSeenMinHeap.remove(member);
-                activeView.put(member.getId(), member);
-                activeMemberLastSeenMinHeap.add(member);
-                dispatcher.dispatch(new MemberViewChangeEvent(member, true));
-            } else {
-                if (!enoughSpaceInPassiveView()) {
-                    // 가장 오래전에 갱신된 passive member 를 추방
-                    Member eldestPassiveMember = getEldestPassiveMember();
-                    if (eldestPassiveMember != null) {
-                        passiveView.remove(eldestPassiveMember.getId());
-                        passiveMemberLastSeenMinHeap.remove(eldestPassiveMember);
+            if (me.nodeId().equals(member.getId()) || activeView.containsKey(member.getId())) {
+                continue;
+            }
+
+            lock.lock();
+            try {
+                if (enoughSpaceInActiveView()) {
+                    // passive view 에 이미 존재했다면 active view 로 이동시킨다.
+                    if (passiveView.containsKey(member.getId())) {
+                        passiveView.remove(member.getId());
+                        passiveMemberLastSeenMinHeap.remove(member);
                     }
+                    activeView.put(member.getId(), member);
+                    activeMemberLastSeenMinHeap.add(member);
+                    dispatcher.dispatch(new MemberViewChangeEvent(member, true));
+                } else if (!passiveView.containsKey(member.getId())) {
+                    if (!enoughSpaceInPassiveView()) {
+                        // 가장 오래전에 갱신된 passive member 를 추방
+                        Member eldestPassiveMember = getEldestPassiveMember();
+                        if (eldestPassiveMember != null) {
+                            passiveView.remove(eldestPassiveMember.getId());
+                            passiveMemberLastSeenMinHeap.remove(eldestPassiveMember);
+                        }
+                    }
+                    passiveView.put(member.getId(), member);
+                    passiveMemberLastSeenMinHeap.add(member);
+                    dispatcher.dispatch(new MemberViewChangeEvent(member, false));
                 }
-                passiveView.put(member.getId(), member);
-                passiveMemberLastSeenMinHeap.add(member);
-                dispatcher.dispatch(new MemberViewChangeEvent(member, false));
+            } finally {
+                lock.unlock();
             }
         }
     }
 
     public void mergeIntoPassiveView(Collection<Member> members) {
         for (Member member : members) {
-            if (me.nodeId().equals(member.getId())) {
+            // 이미 알고있는 멤버인 경우 무시
+            if (me.nodeId().equals(member.getId()) ||
+                activeView.containsKey(member.getId()) ||
+                passiveView.containsKey(member.getId())
+            ) {
                 continue;
             }
 
-            // 이미 알고있는 멤버인 경우 무시
-            if (enoughSpaceInPassiveView() &&
-                !activeView.containsKey(member.getId()) &&
-                !passiveView.containsKey(member.getId())
-            ) {
-                passiveView.put(member.getId(), member);
-                passiveMemberLastSeenMinHeap.add(member);
-                dispatcher.dispatch(new MemberViewChangeEvent(member, false));
+            lock.lock();
+            try {
+                if (enoughSpaceInPassiveView()) {
+                    passiveView.put(member.getId(), member);
+                    passiveMemberLastSeenMinHeap.add(member);
+                    dispatcher.dispatch(new MemberViewChangeEvent(member, false));
+                }
+            } finally {
+                lock.unlock();
             }
         }
     }
