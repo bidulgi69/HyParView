@@ -12,8 +12,7 @@ import java.time.Instant;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Component
@@ -25,7 +24,8 @@ public class MessageDeduplicator {
     private final NavigableMap<Long, Message> lruCache;
     private final ReentrantLock lock = new ReentrantLock();
     private final Logger _logger = LoggerFactory.getLogger(MessageDeduplicator.class);
-    private final ExecutorService cleanerThreadPool = Executors.newSingleThreadExecutor();
+    private final ScheduledExecutorService cleanerThreadPool = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> cleanTask;
 
     @Autowired
     public MessageDeduplicator(HyparViewProperties properties) {
@@ -41,8 +41,12 @@ public class MessageDeduplicator {
         lock.lock();
         try {
             lruCache.put(messageId, message);
-            if (lruCache.size() > properties.getCacheMaxEntrySize()) {
-                cleanerThreadPool.submit(this::removeEldestEntries);
+            if (cleanTask == null && lruCache.size() > properties.getCacheMaxEntrySize()) {
+                cleanTask = cleanerThreadPool.schedule(
+                    this::removeEldestEntries,
+                    properties.getCacheCleanInitDelay(),
+                    TimeUnit.MILLISECONDS
+                );
                 _logger.info("Scheduled cache removal task(`removeEldestEntries`).");
             }
         } finally {
@@ -56,6 +60,7 @@ public class MessageDeduplicator {
         long head = (Instant.now().toEpochMilli() - properties.getCustomEpoch() - retention) << 22;
         SortedMap<Long, Message> headMap = lruCache.headMap(head); // find lower-bound entries
         headMap.keySet().forEach(lruCache::remove);
+        cleanTask = null;
     }
 
     @PreDestroy
