@@ -26,10 +26,12 @@ public class HyparViewProperties {
     private int shuffleInterval;
     @Value("${hyparview.protocol.gossip.heartbeat.interval-ms}")
     private int heartbeatInterval;
-    @Value("${hyparview.cache.max-entry-size}")
+    @Value("${hyparview.cache.max-entry-size:3000}")
     private int cacheMaxEntrySize;
     @Value("${hyparview.cache.retention-ms}")
     private int cacheRetention;
+    @Value("${hyparview.cache.clean-init-delay:30000}")
+    private int cacheCleanInitDelay;
     @Value("${hyparview.snowflake.custom-epoch}")
     private long customEpoch;
 
@@ -86,6 +88,10 @@ public class HyparViewProperties {
 
     public int getCacheRetention() {
         return cacheRetention;
+    }
+
+    public int getCacheCleanInitDelay() {
+        return cacheCleanInitDelay;
     }
 
     public long getCustomEpoch() {
