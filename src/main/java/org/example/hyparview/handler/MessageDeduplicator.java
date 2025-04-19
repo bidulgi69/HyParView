@@ -3,6 +3,8 @@ package org.example.hyparview.handler;
 import jakarta.annotation.PreDestroy;
 import org.example.hyparview.configuration.HyparViewProperties;
 import org.example.hyparview.protocol.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +24,7 @@ public class MessageDeduplicator {
     // Because we use a snowflakeId, we can determine the eldest entry based on the id.
     private final NavigableMap<Long, Message> lruCache;
     private final ReentrantLock lock = new ReentrantLock();
-
+    private final Logger _logger = LoggerFactory.getLogger(MessageDeduplicator.class);
     private final ExecutorService cleanerThreadPool = Executors.newSingleThreadExecutor();
 
     @Autowired
@@ -41,6 +43,7 @@ public class MessageDeduplicator {
             lruCache.put(messageId, message);
             if (lruCache.size() > properties.getCacheMaxEntrySize()) {
                 cleanerThreadPool.submit(this::removeEldestEntries);
+                _logger.info("Scheduled cache removal task(`removeEldestEntries`).");
             }
         } finally {
             lock.unlock();
@@ -48,6 +51,7 @@ public class MessageDeduplicator {
     }
 
     private void removeEldestEntries() {
+        _logger.info("Removing eldest cache entries...");
         int retention = properties.getCacheRetention();
         long head = (Instant.now().toEpochMilli() - properties.getCustomEpoch() - retention) << 22;
         SortedMap<Long, Message> headMap = lruCache.headMap(head); // find lower-bound entries
