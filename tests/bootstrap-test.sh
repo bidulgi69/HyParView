@@ -39,4 +39,4 @@ after_2=$(curl -s 'http://localhost:8081/view?region=ACTIVE' | jq 'length')
 echo "After node-3 joins the cluster, the size of active view in node-2 should be 2"
 verify_value 2 "$after_2"
 
-#bash ./tests/clean.sh
+bash ./tests/clean.sh
