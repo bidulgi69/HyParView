@@ -1,9 +1,11 @@
 package org.example.hyparview;
 
 import org.example.hyparview.configuration.HyparViewProperties;
+import org.example.hyparview.event.MemberDisconnectEvent;
 import org.example.hyparview.event.MemberViewChangeEvent;
 import org.example.hyparview.event.MembershipEventDispatcher;
 import org.example.hyparview.protocol.Node;
+import org.example.hyparview.protocol.gossip.MembershipChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -108,21 +110,32 @@ public class MembershipService {
     }
 
     public void disconnect(String nodeId) {
+        Member disconnected = null;
         if (activeView.containsKey(nodeId)) {
-            Member activeMember = activeView.remove(nodeId);
-            activeMemberLastSeenMinHeap.remove(activeMember);
+            disconnected = activeView.remove(nodeId);
+            activeMemberLastSeenMinHeap.remove(disconnected);
             // move passive member to active view
             Member passiveMember = getRandomPassiveMember();
             if (passiveMember != null) {
-                activeView.put(passiveMember.getId(), passiveMember);
-                activeMemberLastSeenMinHeap.add(passiveMember);
                 passiveView.remove(passiveMember.getId());
                 passiveMemberLastSeenMinHeap.remove(passiveMember);
+                activeView.put(passiveMember.getId(), passiveMember);
+                activeMemberLastSeenMinHeap.add(passiveMember);
+                dispatcher.dispatch(new MemberViewChangeEvent(
+                    passiveMember,
+                    true
+                ));
             }
-        }
-        Member disconnected = passiveView.remove(nodeId);
-        if (disconnected != null) {
+        } else if (passiveView.containsKey(nodeId)) {
+            disconnected = passiveView.remove(nodeId);
             passiveMemberLastSeenMinHeap.remove(disconnected);
+        }
+
+        if (disconnected != null) {
+            dispatcher.dispatch(new MemberDisconnectEvent(
+                disconnected,
+                MembershipChangeType.LEAVE
+            ));
         }
     }
 

@@ -1,15 +1,11 @@
 package org.example.hyparview.utils;
 
 import io.netty.channel.ChannelOption;
-import org.example.hyparview.Member;
 import org.example.hyparview.MembershipService;
-import org.example.hyparview.Snowflake;
-import org.example.hyparview.configuration.HyparViewProperties;
+import org.example.hyparview.event.MemberDisconnectEvent;
+import org.example.hyparview.event.MembershipEventDispatcher;
 import org.example.hyparview.protocol.Message;
 import org.example.hyparview.protocol.Node;
-import org.example.hyparview.protocol.gossip.Gossip;
-import org.example.hyparview.protocol.gossip.GossipMessageType;
-import org.example.hyparview.protocol.gossip.Membership;
 import org.example.hyparview.protocol.gossip.MembershipChangeType;
 import org.example.hyparview.protocol.topology.TopologyMessage;
 import org.slf4j.Logger;
@@ -24,14 +20,12 @@ import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
-import java.util.List;
 
 @Component
 public class HyparviewClient {
 
     private final MembershipService membershipService;
-    private final Snowflake snowflake;
-    private final HyparViewProperties properties;
+    private final MembershipEventDispatcher dispatcher;
 
     private final WebClient webClient;
     private final Scheduler downstreamEventLoop;
@@ -39,13 +33,11 @@ public class HyparviewClient {
 
     @Autowired
     public HyparviewClient(MembershipService membershipService,
-                           Snowflake snowflake,
-                           HyparViewProperties properties,
+                           MembershipEventDispatcher dispatcher,
                            WebClient.Builder webClientBuilder
     ) {
         this.membershipService = membershipService;
-        this.snowflake = snowflake;
-        this.properties = properties;
+        this.dispatcher = dispatcher;
         this.downstreamEventLoop = Schedulers.newSingle("downstreamEventLoop");
         this.webClient = webClientBuilder
             .clientConnector(new ReactorClientHttpConnector(
@@ -69,17 +61,10 @@ public class HyparviewClient {
             .doOnError(e -> {
                 _logger.warn("Failed to send message to {}. Cause: {}", url, e.getMessage());
                 membershipService.disconnect(node.nodeId());
-                Gossip gossip = new Membership(
-                    snowflake.nextId(),
-                    GossipMessageType.MEMBERSHIP,
-                    properties.getDefaultTtl(),
-                    MembershipChangeType.FAIL,
-                    node
-                );
-
-                int fanoutSize = membershipService.getFanoutSize();
-                List<Member> activePeers = membershipService.getRandomActiveMembersLimit(fanoutSize);
-                activePeers.forEach(peer -> doPost(peer.toNode(), gossip).subscribe());
+                dispatcher.dispatch(new MemberDisconnectEvent(
+                    node.toMember(),
+                    MembershipChangeType.FAIL
+                ));
             })
             .onErrorResume(e -> {
                 _logger.error("An error occurred while sending to {}. Cause: {}", url, e.getMessage());
