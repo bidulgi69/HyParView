@@ -94,4 +94,9 @@ public class TestController {
             System.exit(exit);
         }).start();
     }
+
+    @GetMapping("/schedule")
+    public void enableSchedule() {
+        schedulers.run();
+    }
 }
