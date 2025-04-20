@@ -20,11 +20,11 @@ function verify_node3_evict() {
 
   actual=$(curl -s "http://$url/view?region=$region" | jq 'map(.id)|contains(["hyparview-node3"])')
 
-  if [ "$actual" -ne "$expect" ]; then
+  if [ "$actual" = "$expect" ]; then
+    echo "Matches well"
+  else
     echo "Mismatch: (expected: $expect, actual: $actual)"
     exit 1
-  else
-    echo "Matches well"
   fi
 }
 
@@ -37,8 +37,8 @@ docker-compose -f docker-compose.manual.yml up -d hyparview-node1 hyparview-node
 sleep 5
 
 # connect node-2, 3 to node-1
-connect localhost:8080 hyparview-node3 8080
-connect localhost:8080 hyparview-node2 8080
+connect localhost:8081 hyparview-node1 8080
+connect localhost:8082 hyparview-node1 8080
 
 # run node-4
 docker-compose -f docker-compose.manual.yml up -d hyparview-node4
@@ -46,7 +46,7 @@ sleep 3
 
 # connect node-4 to node-1
 # eldest entry(node3) will evict from active view
-connect localhost:8080 hyparview-node4 8080
+connect localhost:8083 hyparview-node1 8080
 sleep 3
 
 # verify node-3 was evicted from active view
