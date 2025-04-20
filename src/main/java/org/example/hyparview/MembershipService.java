@@ -2,6 +2,7 @@ package org.example.hyparview;
 
 import org.example.hyparview.configuration.HyparViewProperties;
 import org.example.hyparview.event.MemberDisconnectEvent;
+import org.example.hyparview.event.MemberJoinEvent;
 import org.example.hyparview.event.MemberViewChangeEvent;
 import org.example.hyparview.event.MembershipEventDispatcher;
 import org.example.hyparview.protocol.Node;
@@ -51,6 +52,7 @@ public class MembershipService {
                 return;
             }
 
+            boolean gossip = true;
             if (!enoughSpaceInActiveView() && !passiveView.containsKey(member.getId())) {
                 if (!enoughSpaceInPassiveView()) {
                     Member eldestPassiveMember = getEldestPassiveMember();
@@ -60,8 +62,18 @@ public class MembershipService {
                 passiveView.put(member.getId(), member);
                 passiveMemberLastSeenMinHeap.add(member);
             } else {
+                if (passiveView.containsKey(member.getId())) {
+                    passiveView.remove(member.getId());
+                    passiveMemberLastSeenMinHeap.remove(member);
+                    gossip = false;
+                }
                 activeView.put(member.getId(), member);
                 activeMemberLastSeenMinHeap.add(member);
+            }
+
+            if (gossip) {
+                // gossiping
+                dispatcher.dispatch(new MemberJoinEvent(member));
             }
         } finally {
             lock.unlock();
@@ -75,6 +87,13 @@ public class MembershipService {
                 return;
             }
 
+            boolean gossip = true;
+            if (passiveView.containsKey(member.getId())) {
+                passiveView.remove(member.getId());
+                passiveMemberLastSeenMinHeap.remove(member);
+                gossip = false;
+            }
+
             if (!enoughSpaceInActiveView()) {
                 // 가장 오래된 active member 를 passive view 로 이동
                 Member eldestActiveMember = getEldestActiveMember();
@@ -85,6 +104,10 @@ public class MembershipService {
             }
             activeView.put(member.getId(), member);
             activeMemberLastSeenMinHeap.add(member);
+
+            if (gossip) {
+                dispatcher.dispatch(new MemberJoinEvent(member));
+            }
         } finally {
             lock.unlock();
         }
@@ -93,16 +116,26 @@ public class MembershipService {
     public void joinIfAvailable(Member member, boolean active) {
         lock.lock();
         try {
-            if (me.nodeId().equals(member.getId())) {
+            if (me.nodeId().equals(member.getId()) || activeView.containsKey(member.getId())) {
                 return;
             }
 
+            boolean gossip = true;
             if (active && enoughSpaceInActiveView() && !activeView.containsKey(member.getId())) {
+                if (passiveView.containsKey(member.getId())) {
+                    passiveView.remove(member.getId());
+                    passiveMemberLastSeenMinHeap.remove(member);
+                    gossip = false;
+                }
                 activeView.put(member.getId(), member);
                 activeMemberLastSeenMinHeap.add(member);
             } else if (!active && enoughSpaceInPassiveView() && !passiveView.containsKey(member.getId())) {
                 passiveView.put(member.getId(), member);
                 passiveMemberLastSeenMinHeap.add(member);
+            }
+
+            if (gossip) {
+                dispatcher.dispatch(new MemberJoinEvent(member));
             }
         } finally {
             lock.unlock();
