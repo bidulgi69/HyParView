@@ -37,8 +37,8 @@ docker-compose -f docker-compose.manual.yml up -d hyparview-node1 hyparview-node
 sleep 5
 
 # connect node-2, 3 to node-1
-connect localhost:8081 hyparview-node1 8080
 connect localhost:8082 hyparview-node1 8080
+connect localhost:8081 hyparview-node1 8080
 
 # run node-4
 docker-compose -f docker-compose.manual.yml up -d hyparview-node4
