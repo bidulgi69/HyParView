@@ -1,6 +1,7 @@
 hyparview:
   bootstrap:
     enable: true
+    scheduler.enable: true
   expected-network-scale: 5
   protocol:
     default-ttl: 2 # log(5) ? 1.6

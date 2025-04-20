@@ -8,6 +8,7 @@ services:
       HYPARVIEW_NODE_ID: hyparview-node1
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
       HYPARVIEW_BOOTSTRAP_ENABLE: false
+      HYPARVIEW_BOOTSTRAP_SCHEDULER_ENABLE: false
     networks:
       - hyparview-cluster
 
@@ -21,10 +22,9 @@ services:
       HYPARVIEW_SEED: hyparview-node1=hyparview-node1:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
       HYPARVIEW_BOOTSTRAP_ENABLE: false
+      HYPARVIEW_BOOTSTRAP_SCHEDULER_ENABLE: false
     networks:
       - hyparview-cluster
-    depends_on:
-      - hyparview-node1
 
   hyparview-node3:
     build: .
@@ -36,10 +36,9 @@ services:
       HYPARVIEW_SEED: hyparview-node2=hyparview-node2:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
       HYPARVIEW_BOOTSTRAP_ENABLE: false
+      HYPARVIEW_BOOTSTRAP_SCHEDULER_ENABLE: false
     networks:
       - hyparview-cluster
-    depends_on:
-      - hyparview-node2
 
   hyparview-node4:
     build: .
@@ -51,10 +50,9 @@ services:
       HYPARVIEW_SEED: hyparview-node3=hyparview-node3:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
       HYPARVIEW_BOOTSTRAP_ENABLE: false
+      HYPARVIEW_BOOTSTRAP_SCHEDULER_ENABLE: false
     networks:
       - hyparview-cluster
-    depends_on:
-      - hyparview-node3
 
   hyparview-node5:
     build: .
@@ -66,10 +64,9 @@ services:
       HYPARVIEW_SEED: hyparview-node4=hyparview-node4:8080
       HYPARVIEW_EXPECTED_NETWORK_SCALE: 5
       HYPARVIEW_BOOTSTRAP_ENABLE: false
+      HYPARVIEW_BOOTSTRAP_SCHEDULER_ENABLE: false
     networks:
       - hyparview-cluster
-    depends_on:
-      - hyparview-node4
 
 networks:
   hyparview-cluster:

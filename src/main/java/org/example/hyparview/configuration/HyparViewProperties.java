@@ -16,6 +16,8 @@ public class HyparViewProperties {
     private String seed;
     @Value("${hyparview.bootstrap.enable:true}")
     private boolean enableBootstrap;
+    @Value("${hyparview.bootstrap.scheduler.enable:true}")
+    private boolean enableBootstrapScheduler;
     @Value("${hyparview.expected-network-scale:10}")
     private int networkScale;
     @Value("${hyparview.protocol.default-ttl}")
@@ -62,6 +64,11 @@ public class HyparViewProperties {
 
     public boolean enableBootStrap() {
         return enableBootstrap;
+    }
+
+    // 테스트를 위해서 설정하는 property
+    public boolean enableBootstrapScheduler() {
+        return enableBootstrapScheduler;
     }
 
     public int getNetworkScale() {

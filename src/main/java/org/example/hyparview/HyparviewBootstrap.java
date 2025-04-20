@@ -65,7 +65,9 @@ public class HyparviewBootstrap implements ApplicationRunner {
             }
         }
 
-        // run schedules
-        schedulers.run();
+        if (properties.enableBootstrapScheduler()) {
+            // run schedules
+            schedulers.run();
+        }
     }
 }
