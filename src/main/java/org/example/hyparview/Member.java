@@ -10,6 +10,12 @@ public class Member {
     private final String host;
     private final int port;
     private Instant lastSeen;   // gossip 에 의해서만 갱신됨.
+    private PushType pushType;
+
+    public enum PushType {
+        EAGER,
+        LAZY
+    }
 
     public Member(String id, String host, int port) {
         this.id = id;
@@ -41,6 +47,14 @@ public class Member {
     @JsonIgnore
     public Instant getLastSeen() {
         return lastSeen;
+    }
+
+    public PushType getPushType() {
+        return pushType;
+    }
+
+    public void setPushType(PushType pushType) {
+        this.pushType = pushType;
     }
 
     @Override

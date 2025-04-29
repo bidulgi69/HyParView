@@ -12,7 +12,7 @@ import org.example.hyparview.protocol.gossip.Gossip;
 import org.example.hyparview.protocol.gossip.GossipMessageType;
 import org.example.hyparview.protocol.gossip.Membership;
 import org.example.hyparview.protocol.gossip.MembershipChangeType;
-import org.example.hyparview.utils.HyparviewClient;
+import org.example.hyparview.queue.BroadcastTaskQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +26,7 @@ public class MemberJoinListener {
                               MembershipService membershipService,
                               HyparViewProperties properties,
                               Snowflake snowflake,
-                              HyparviewClient client
+                              BroadcastTaskQueue broadcastTaskQueue
     ) {
         dispatcher.registerConsumer(event -> {
             if (!support(event)) {
@@ -39,13 +39,14 @@ public class MemberJoinListener {
                 snowflake.nextId(),
                 GossipMessageType.MEMBERSHIP,
                 properties.getDefaultTtl(),
+                properties.getId(),
                 MembershipChangeType.JOIN,
                 node
             );
 
             int fanoutSize = membershipService.getFanoutSize();
             List<Member> activePeers = membershipService.getRandomActiveMembersLimit(fanoutSize);
-            activePeers.forEach(peer -> client.doPost(peer.toNode(), gossip).subscribe());
+            broadcastTaskQueue.submit(activePeers, gossip);
         });
     }
 

@@ -3,6 +3,7 @@ package org.example.hyparview.event.listener;
 import org.example.hyparview.Member;
 import org.example.hyparview.MembershipService;
 import org.example.hyparview.Snowflake;
+import org.example.hyparview.configuration.HyparViewProperties;
 import org.example.hyparview.event.Event;
 import org.example.hyparview.event.MemberDisconnectEvent;
 import org.example.hyparview.event.MembershipEventDispatcher;
@@ -10,7 +11,7 @@ import org.example.hyparview.protocol.Node;
 import org.example.hyparview.protocol.gossip.Gossip;
 import org.example.hyparview.protocol.gossip.GossipMessageType;
 import org.example.hyparview.protocol.gossip.Membership;
-import org.example.hyparview.utils.HyparviewClient;
+import org.example.hyparview.queue.BroadcastTaskQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +23,9 @@ public class MemberDisconnectListener {
     @Autowired
     public MemberDisconnectListener(MembershipEventDispatcher dispatcher,
                                     MembershipService membershipService,
+                                    HyparViewProperties properties,
                                     Snowflake snowflake,
-                                    HyparviewClient client
+                                    BroadcastTaskQueue broadcastTaskQueue
     ) {
         dispatcher.registerConsumer(event -> {
             if (!support(event)) {
@@ -36,13 +38,14 @@ public class MemberDisconnectListener {
                 snowflake.nextId(),
                 GossipMessageType.MEMBERSHIP,
                 0,
+                properties.getId(),
                 evt.reason(),
                 node
             );
 
             int fanoutSize = membershipService.getFanoutSize();
             List<Member> activePeers = membershipService.getRandomActiveMembersLimit(fanoutSize);
-            activePeers.forEach(peer -> client.doPost(peer.toNode(), gossip).subscribe());
+            broadcastTaskQueue.submit(activePeers, gossip);
         });
     }
 

@@ -27,4 +27,12 @@ public abstract class HandlerTemplate<T extends Message> {
     }
 
     protected abstract boolean process(T message);
+
+    protected void put(T message) {
+        messageDeduplicator.put(message.getMessageId(), message);
+    }
+
+    protected Message find(long messageId) {
+        return messageDeduplicator.find(messageId);
+    }
 }

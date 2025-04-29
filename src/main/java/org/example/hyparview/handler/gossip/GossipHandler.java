@@ -2,13 +2,19 @@ package org.example.hyparview.handler.gossip;
 
 import org.example.hyparview.Member;
 import org.example.hyparview.MembershipService;
+import org.example.hyparview.Snowflake;
 import org.example.hyparview.handler.HandlerTemplate;
 import org.example.hyparview.handler.MessageDeduplicator;
+import org.example.hyparview.protocol.Message;
 import org.example.hyparview.protocol.Node;
 import org.example.hyparview.protocol.gossip.Gossip;
 import org.example.hyparview.protocol.gossip.Heartbeat;
 import org.example.hyparview.protocol.gossip.Membership;
-import org.example.hyparview.utils.HyparviewClient;
+import org.example.hyparview.protocol.plumtree.PlumTreeMessage;
+import org.example.hyparview.protocol.plumtree.PlumTreeMessageType;
+import org.example.hyparview.protocol.plumtree.Prune;
+import org.example.hyparview.queue.BroadcastTaskQueue;
+import org.example.hyparview.queue.PlumTreeTaskQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,17 +27,47 @@ import java.util.List;
 public class GossipHandler extends HandlerTemplate<Gossip> {
 
     private final MembershipService membershipService;
-    private final HyparviewClient client;
+    private final Snowflake snowflake;
+    private final BroadcastTaskQueue broadcastTaskQueue;
+    private final PlumTreeTaskQueue plumTreeTaskQueue;
     private final Logger _logger = LoggerFactory.getLogger(GossipHandler.class);
 
     @Autowired
     public GossipHandler(MembershipService membershipService,
-                         HyparviewClient client,
-                         MessageDeduplicator messageDeduplicator
+                         MessageDeduplicator messageDeduplicator,
+                         Snowflake snowflake,
+                         BroadcastTaskQueue broadcastTaskQueue,
+                         PlumTreeTaskQueue plumTreeTaskQueue
     ) {
         super(messageDeduplicator);
         this.membershipService = membershipService;
-        this.client = client;
+        this.snowflake = snowflake;
+        this.broadcastTaskQueue = broadcastTaskQueue;
+        this.plumTreeTaskQueue = plumTreeTaskQueue;
+    }
+
+    @Override
+    public void handle(Gossip gossip) {
+        Message message = find(gossip.getMessageId());
+        if (message instanceof Gossip ex) {
+            // 이미 동일한 메세지를 다른 노드로 부터 수신한 경우
+            if (!ex.getSource().nodeId().equals(gossip.getSource().nodeId())) {
+                PlumTreeMessage prune = new Prune(
+                    snowflake.nextId(),
+                    PlumTreeMessageType.PRUNE,
+                    0,
+                    gossip.getSource().nodeId()
+                );
+                plumTreeTaskQueue.submit(gossip.getSource(), prune);
+                return;
+            }
+        }
+
+        // handle message
+        boolean _processed = process(gossip);
+        if (_processed) {
+            super.put(gossip);
+        }
     }
 
     @Override
@@ -41,7 +77,7 @@ public class GossipHandler extends HandlerTemplate<Gossip> {
             case HEARTBEAT -> {
                 Heartbeat heartbeat = (Heartbeat) gossip;
                 Instant requestAt = gossip.getTimestamp();
-                membershipService.applyHeartbeat(heartbeat.getSourceId(), requestAt);
+                membershipService.applyHeartbeat(heartbeat.getSource().nodeId(), requestAt);
             }
             case MEMBERSHIP -> {
                 Membership membership = (Membership) gossip;
@@ -63,7 +99,7 @@ public class GossipHandler extends HandlerTemplate<Gossip> {
             gossip.decrementTtl();
             int fanout = membershipService.getFanoutSize();
             List<Member> peers = membershipService.getRandomActiveMembersLimit(fanout);
-            peers.forEach(peer -> client.doPost(peer.toNode(), gossip).subscribe());
+            broadcastTaskQueue.submit(peers, gossip);
         }
     }
 }

@@ -9,7 +9,7 @@ import org.example.hyparview.protocol.Node;
 import org.example.hyparview.protocol.topology.ShuffleRequest;
 import org.example.hyparview.protocol.topology.TopologyMessage;
 import org.example.hyparview.protocol.topology.TopologyMessageType;
-import org.example.hyparview.utils.HyparviewClient;
+import org.example.hyparview.queue.TopologyTaskQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +27,9 @@ import java.util.concurrent.TimeUnit;
 public class ShuffleScheduler {
 
     private final MembershipService membershipService;
-    private final HyparviewClient client;
     private final Snowflake snowflake;
     private final HyparViewProperties properties;
+    private final TopologyTaskQueue topologyTaskQueue;
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> scheduledFuture = null;
@@ -37,14 +37,14 @@ public class ShuffleScheduler {
 
     @Autowired
     public ShuffleScheduler(MembershipService membershipService,
-                            HyparviewClient client,
                             Snowflake snowflake,
-                            HyparViewProperties properties
+                            HyparViewProperties properties,
+                            TopologyTaskQueue topologyTaskQueue
     ) {
         this.membershipService = membershipService;
-        this.client = client;
         this.snowflake = snowflake;
         this.properties = properties;
+        this.topologyTaskQueue = topologyTaskQueue;
     }
 
     public void run() {
@@ -81,7 +81,7 @@ public class ShuffleScheduler {
 
             Member randomActiveMember = membershipService.getRandomActiveMember();
             if (randomActiveMember != null) {
-                client.doPost(randomActiveMember.toNode(), shuffleRequest).subscribe();
+                topologyTaskQueue.submit(randomActiveMember.toNode(), shuffleRequest);
             }
         };
     }

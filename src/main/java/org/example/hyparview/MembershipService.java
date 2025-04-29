@@ -246,6 +246,15 @@ public class MembershipService {
         }
     }
 
+    public Member updateActiveMemberPushType(String nodeId, Member.PushType pushType) {
+        if (activeView.containsKey(nodeId)) {
+            Member member = activeView.get(nodeId);
+            member.setPushType(pushType);
+            return activeView.put(nodeId, member);
+        }
+        return null;
+    }
+
     private boolean enoughSpaceInActiveView() {
         return activeViewSizeLimit > activeView.size();
     }

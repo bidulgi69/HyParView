@@ -36,6 +36,8 @@ public class HyparViewProperties {
     private int cacheRetention;
     @Value("${hyparview.cache.clean-init-delay:30000}")
     private int cacheCleanInitDelay;
+    @Value("${hyparview.plumtree.lazy-push-delay-ms:2000}")
+    private int lazyPushDelay;
     @Value("${hyparview.snowflake.custom-epoch}")
     private long customEpoch;
 
@@ -105,6 +107,10 @@ public class HyparViewProperties {
 
     public int getCacheCleanInitDelay() {
         return cacheCleanInitDelay;
+    }
+
+    public int getLazyPushDelay() {
+        return lazyPushDelay;
     }
 
     public long getCustomEpoch() {

@@ -12,7 +12,10 @@ import java.time.Instant;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Component
@@ -61,6 +64,10 @@ public class MessageDeduplicator {
         SortedMap<Long, Message> headMap = lruCache.headMap(head); // find lower-bound entries
         headMap.keySet().forEach(lruCache::remove);
         cleanTask = null;
+    }
+
+    protected Message find(long messageId) {
+        return lruCache.get(messageId);
     }
 
     @PreDestroy

@@ -1,19 +1,14 @@
 package org.example.hyparview.protocol.gossip;
 
-public class Heartbeat extends Gossip {
+import org.example.hyparview.protocol.Node;
 
-    private final String sourceId;
+public class Heartbeat extends Gossip {
 
     public Heartbeat(long messageId,
                      GossipMessageType type,
                      int ttl,
-                     String sourceId
+                     Node source
     ) {
-        super(messageId, type, ttl);
-        this.sourceId = sourceId;
-    }
-
-    public String getSourceId() {
-        return sourceId;
+        super(messageId, type, ttl, source);
     }
 }

@@ -4,11 +4,10 @@ import org.example.hyparview.Snowflake;
 import org.example.hyparview.event.Event;
 import org.example.hyparview.event.MemberViewChangeEvent;
 import org.example.hyparview.event.MembershipEventDispatcher;
-import org.example.hyparview.protocol.Node;
 import org.example.hyparview.protocol.topology.NeighborSuggest;
 import org.example.hyparview.protocol.topology.TopologyMessage;
 import org.example.hyparview.protocol.topology.TopologyMessageType;
-import org.example.hyparview.utils.HyparviewClient;
+import org.example.hyparview.queue.TopologyTaskQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +17,7 @@ public class MemberViewChangedListener {
     @Autowired
     public MemberViewChangedListener(MembershipEventDispatcher dispatcher,
                                      Snowflake snowflake,
-                                     HyparviewClient client
+                                     TopologyTaskQueue topologyTaskQueue
     ) {
         dispatcher.registerConsumer(event -> {
             if (!support(event)) {
@@ -26,16 +25,15 @@ public class MemberViewChangedListener {
             }
 
             MemberViewChangeEvent evt = (MemberViewChangeEvent) event;
-            Node node = evt.member().toNode();
             TopologyMessage neighborSuggest = new NeighborSuggest(
                 snowflake.nextId(),
                 TopologyMessageType.NEIGHBOR,
                 0,
-                node,
+                evt.member().toNode(),
                 evt.activeView()
             );
 
-            client.doPost(node, neighborSuggest).subscribe();
+            topologyTaskQueue.submit(evt.member(), neighborSuggest);
         });
     }
 

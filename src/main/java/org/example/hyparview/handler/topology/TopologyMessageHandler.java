@@ -8,7 +8,7 @@ import org.example.hyparview.handler.HandlerTemplate;
 import org.example.hyparview.handler.MessageDeduplicator;
 import org.example.hyparview.protocol.Node;
 import org.example.hyparview.protocol.topology.*;
-import org.example.hyparview.utils.HyparviewClient;
+import org.example.hyparview.queue.TopologyTaskQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,23 +21,23 @@ import java.util.List;
 public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
 
     private final MembershipService membershipService;
-    private final HyparviewClient client;
     private final HyparViewProperties properties;
     private final Snowflake snowflake;
+    private final TopologyTaskQueue topologyTaskQueue;
     private final Logger _logger = LoggerFactory.getLogger(TopologyMessageHandler.class);
 
     @Autowired
     public TopologyMessageHandler(MembershipService membershipService,
-                                  HyparviewClient client,
                                   HyparViewProperties properties,
                                   MessageDeduplicator messageDeduplicator,
-                                  Snowflake snowflake
+                                  Snowflake snowflake,
+                                  TopologyTaskQueue topologyTaskQueue
     ) {
         super(messageDeduplicator);
         this.membershipService = membershipService;
-        this.client = client;
         this.properties = properties;
         this.snowflake = snowflake;
+        this.topologyTaskQueue = topologyTaskQueue;
     }
 
     @Override
@@ -51,7 +51,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
             Member randomActiveMember = membershipService.getRandomActiveMember();
             if (randomActiveMember != null) {
                 _logger.info("Forward request to random active peer {}", randomActiveMember.getId());
-                client.doPost(randomActiveMember.toNode(), message).subscribe();
+                topologyTaskQueue.submit(randomActiveMember, message);
             }
             return false;
         }
@@ -70,7 +70,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
 
                 Member randomActiveMember = membershipService.getRandomActiveMember();
                 if (randomActiveMember != null) {
-                    client.doPost(randomActiveMember.toNode(), forwardJoinRequest).subscribe();
+                    topologyTaskQueue.submit(randomActiveMember, forwardJoinRequest);
                 }
                 membershipService.forceJoin(joinRequest.getNode().toMember());
             }
@@ -88,7 +88,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
                     0,
                     properties.getId()
                 );
-                client.doPost(originMember.toNode(), forwardJoinReply).subscribe();
+                topologyTaskQueue.submit(originMember, forwardJoinReply);
             }
             case FWD_JOIN_REPLY -> {
                 ForwardJoinReply forwardJoinReply = (ForwardJoinReply) message;
@@ -117,7 +117,7 @@ public class TopologyMessageHandler extends HandlerTemplate<TopologyMessage> {
                     replySet
                 );
 
-                client.doPost(shuffleRequest.getOriginNode(), shuffleReply).subscribe();
+                topologyTaskQueue.submit(shuffleRequest.getOriginNode(), shuffleReply);
             }
             case SHUFFLE_REPLY -> {
                 ShuffleReply shuffleReply = (ShuffleReply) message;

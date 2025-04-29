@@ -10,10 +10,11 @@ public class Membership extends Gossip {
     public Membership(long messageId,
                       GossipMessageType type,
                       int ttl,
+                      Node source,
                       MembershipChangeType changeType,
                       Node node
     ) {
-        super(messageId, type, ttl);
+        super(messageId, type, ttl, source);
         this.changeType = changeType;
         this.node = node;
     }

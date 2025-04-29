@@ -1,9 +1,8 @@
-package org.example.hyparview.protocol.gossip;
+package org.example.hyparview.protocol.plumtree;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.example.hyparview.protocol.Message;
-import org.example.hyparview.protocol.Node;
 
 import java.time.Instant;
 
@@ -14,30 +13,29 @@ import java.time.Instant;
     visible = true
 )
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = Heartbeat.class, name = "HEARTBEAT"),
-    @JsonSubTypes.Type(value = Membership.class, name = "MEMBERSHIP")
+    @JsonSubTypes.Type(value = Prune.class, name = "PRUNE"),
+    @JsonSubTypes.Type(value = IHave.class, name = "IHAVE"),
+    @JsonSubTypes.Type(value = Graft.class, name = "GRAFT"),
 })
-public abstract class Gossip implements Message {
+public abstract class PlumTreeMessage implements Message {
 
-    private final long messageId;
-    private final GossipMessageType type;
+    private final long messageId; // snowflakeId
+    private final PlumTreeMessageType type;
     private int ttl;
     private final Instant timestamp;
-    private final Node source;
 
-    public Gossip(long messageId, GossipMessageType type, int ttl, Node source) {
+    public PlumTreeMessage(long messageId, PlumTreeMessageType type, int ttl) {
         this.messageId = messageId;
         this.type = type;
         this.ttl = ttl;
         this.timestamp = Instant.now();
-        this.source = source;
     }
 
     public long getMessageId() {
         return messageId;
     }
 
-    public GossipMessageType getType() {
+    public PlumTreeMessageType getType() {
         return type;
     }
 
@@ -47,10 +45,6 @@ public abstract class Gossip implements Message {
 
     public Instant getTimestamp() {
         return timestamp;
-    }
-
-    public Node getSource() {
-        return source;
     }
 
     public void decrementTtl() {

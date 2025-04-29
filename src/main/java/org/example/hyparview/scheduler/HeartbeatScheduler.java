@@ -8,7 +8,7 @@ import org.example.hyparview.configuration.HyparViewProperties;
 import org.example.hyparview.protocol.gossip.Gossip;
 import org.example.hyparview.protocol.gossip.GossipMessageType;
 import org.example.hyparview.protocol.gossip.Heartbeat;
-import org.example.hyparview.utils.HyparviewClient;
+import org.example.hyparview.queue.BroadcastTaskQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +24,9 @@ import java.util.concurrent.TimeUnit;
 public class HeartbeatScheduler {
 
     private final MembershipService membershipService;
-    private final HyparviewClient client;
     private final Snowflake snowflake;
     private final HyparViewProperties properties;
+    private final BroadcastTaskQueue broadcastTaskQueue;
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> scheduledFuture = null;
@@ -34,14 +34,14 @@ public class HeartbeatScheduler {
 
     @Autowired
     public HeartbeatScheduler(MembershipService membershipService,
-                              HyparviewClient client,
                               Snowflake snowflake,
-                              HyparViewProperties properties
+                              HyparViewProperties properties,
+                              BroadcastTaskQueue broadcastTaskQueue
     ) {
         this.membershipService = membershipService;
-        this.client = client;
         this.snowflake = snowflake;
         this.properties = properties;
+        this.broadcastTaskQueue = broadcastTaskQueue;
     }
 
     public void run() {
@@ -64,10 +64,10 @@ public class HeartbeatScheduler {
                 messageId,
                 GossipMessageType.HEARTBEAT,
                 properties.getDefaultTtl(),
-                properties.getNodeId()
+                properties.getId()
             );
 
-            activePeers.forEach(peer -> client.doPost(peer.toNode(), heartbeat).subscribe());
+            broadcastTaskQueue.submit(activePeers, heartbeat);
         };
     }
 
