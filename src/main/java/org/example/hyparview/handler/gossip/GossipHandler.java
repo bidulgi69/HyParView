@@ -3,6 +3,7 @@ package org.example.hyparview.handler.gossip;
 import org.example.hyparview.Member;
 import org.example.hyparview.MembershipService;
 import org.example.hyparview.Snowflake;
+import org.example.hyparview.configuration.HyparViewProperties;
 import org.example.hyparview.handler.HandlerTemplate;
 import org.example.hyparview.handler.MessageDeduplicator;
 import org.example.hyparview.protocol.Message;
@@ -28,6 +29,7 @@ public class GossipHandler extends HandlerTemplate<Gossip> {
 
     private final MembershipService membershipService;
     private final Snowflake snowflake;
+    private final HyparViewProperties properties;
     private final BroadcastTaskQueue broadcastTaskQueue;
     private final PlumTreeTaskQueue plumTreeTaskQueue;
     private final Logger _logger = LoggerFactory.getLogger(GossipHandler.class);
@@ -36,12 +38,14 @@ public class GossipHandler extends HandlerTemplate<Gossip> {
     public GossipHandler(MembershipService membershipService,
                          MessageDeduplicator messageDeduplicator,
                          Snowflake snowflake,
+                         HyparViewProperties properties,
                          BroadcastTaskQueue broadcastTaskQueue,
                          PlumTreeTaskQueue plumTreeTaskQueue
     ) {
         super(messageDeduplicator);
         this.membershipService = membershipService;
         this.snowflake = snowflake;
+        this.properties = properties;
         this.broadcastTaskQueue = broadcastTaskQueue;
         this.plumTreeTaskQueue = plumTreeTaskQueue;
     }
@@ -56,7 +60,7 @@ public class GossipHandler extends HandlerTemplate<Gossip> {
                     snowflake.nextId(),
                     PlumTreeMessageType.PRUNE,
                     0,
-                    gossip.getSource().nodeId()
+                    properties.getNodeId()
                 );
                 plumTreeTaskQueue.submit(gossip.getSource(), prune);
                 return;
