@@ -1,6 +1,6 @@
-# HyParView
+# HyParView & Plumtree
 
-A lightweight Java implementation of the [HyParView](https://asc.di.fct.unl.pt/~jleitao/pdf/dsn07-leitao.pdf?ref=bartoszsypytkowski.com) membership protocol for peer-to-peer networks. It provides efficient, random peer sampling and reliable membership management.
+A lightweight Java implementation of the [HyParView](https://asc.di.fct.unl.pt/~jleitao/pdf/dsn07-leitao.pdf?ref=bartoszsypytkowski.com) membership protocol for peer-to-peer networks and its [PlumTree](https://www.bartoszsypytkowski.com/plumtree/) broadcast extension. It provides efficient, random peer sampling and reliable membership management.
 
 ---
 
@@ -11,6 +11,8 @@ A lightweight Java implementation of the [HyParView](https://asc.di.fct.unl.pt/~
 - **Random Peer Sampling**: Leverages shuffle and gossip subprotocols to continuously mix views, providing uniform random sampling of peers.
 - **Localized Failure Detection**: Heartbeat-based liveness checks detect node failures quickly, minimizing impact on the network.
 - **Decoupled Layers**: Separates **topology management** (JOIN, SHUFFLE, NEIGHBOR) from **event propagation** (Gossip), ensuring modularity and resilience.
+- **Efficient Broadcast Tree**: Reduces redundant message transmissions. Eager pushes quickly spread messages, while lazy pulls correct missed deliveries without flooding.
+- **Scalability**: Limits full message gossip to active peers and defers bulk transfers to lazy interactions, keeping per-round cost bounded.
 
 ---
 
@@ -22,6 +24,7 @@ A lightweight Java implementation of the [HyParView](https://asc.di.fct.unl.pt/~
 - **Gossip for Membership**: Broadcast `JOIN`, `LEAVE`, and `FAIL` events via TTL-limited gossip.
 - **Failure Detection**: Heartbeat-based liveness tracking and automatic removal of failed nodes.
 - **Auto Eviction**: Maintain fixed-size active/passive views with LRU-based eviction.
+- **Eager Push, Lazy Pull**: Manage eager and lazy push with `PRUNE` and `GRAFT`.
 - **Deduplicate Message**: An LRU-based cache system prevents duplicate messages from being processed.
 - **Docker Compose & Bash Tests**: End-to-end protocol verification with containers and scripts.
 
